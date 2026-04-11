@@ -26,7 +26,7 @@ slprj/
 *.synctex.gz
 *.synctex(busy)
 # Keep reference PDFs but ignore compiled output
-template/**/*.pdf
+
 
 # ============================================================
 # Generated figures (reproducible from salmonella_gompertz.m)
