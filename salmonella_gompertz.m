@@ -59,6 +59,11 @@ Tmax = 46.3;        % degC
 beta_all = [A, C, M, a, b, Tmin, Tmax];
 pnames_all = {'A','C','M','a','b','T_{min}','T_{max}'};
 p_all = length(beta_all);
+
+paramColorMap = containers.Map( ...
+    {'A','C','M','a','b','T_{min}','T_{max}'}, ...
+    {[1 0 0], [0 0.6 0], [0 0 1], [0 0.7 0.7], [0.85 0.65 0], [0.7 0 0.7], [0.3 0.3 0.3]});
+Ypred_color = [0 0 0];
 %%
 %% define the function for forward problem (all 7 params)
 fnameFOR_all = @gompertzFOR_7;
@@ -80,15 +85,14 @@ saveas(gcf, fullfile(figDir, 'fig01_initial_guess_vs_data.png'));
 Xp_all = SSC_V3(beta_all, xs, fnameFOR_all);
 %%
 %% plot X' for all 7 parameters
-cmap = ['r' 'g' 'b' 'c' 'y' 'm' 'k']';
 figure
 hold on
 set(gca, 'fontsize',18,'fontweight','bold');
 for i = 1:p_all
-    h2(i) = plot(xs(1:ns), Xp_all(1:ns,i), '-', 'color', cmap(i,:), 'LineWidth', 3);
+    h2(i) = plot(xs(1:ns), Xp_all(1:ns,i), '-', 'color', paramColorMap(pnames_all{i}), 'LineWidth', 3);
 end
 ypred = fnameFOR_all(beta_all, xs);
-h2(p_all+1) = plot(xs, ypred, '--k', 'LineWidth', 4);
+h2(p_all+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
 legStr = cell(1, p_all+1);
 for i = 1:p_all
     legStr{i} = [pnames_all{i}, '*\partialY/\partial(', pnames_all{i}, ')'];
@@ -101,32 +105,7 @@ title('SSC using initial guesses -- ALL 7 parameters');
 grid on
 saveas(gcf, fullfile(figDir, 'fig02_SSC_7params.png'));
 
-%% SSC ratio analysis -- all pairs of 7 parameters
-nPairs = p_all*(p_all-1)/2;
-nCols = 7; nRows = ceil(nPairs/nCols);
-figure('Position', [100 100 1800 800])
-pairIdx = 0;
-for i = 1:p_all
-    for j = (i+1):p_all
-        pairIdx = pairIdx + 1;
-        subplot(nRows, nCols, pairIdx)
-        ratio_ij = Xp_all(:,i) ./ (Xp_all(:,j) + eps);  % eps to avoid /0
-        plot(xs, ratio_ij, '-', 'LineWidth', 1.5);
-        title([pnames_all{i} ' / ' pnames_all{j}], 'FontSize', 9);
-        xlabel('t'); ylabel('ratio');
-        grid on
-        % check if ratio is approximately constant (after both SSC are nontrivial)
-        mask = abs(Xp_all(:,i)) > 0.05 & abs(Xp_all(:,j)) > 0.05;
-        if sum(mask) > 10
-            cv = std(ratio_ij(mask)) / (abs(mean(ratio_ij(mask))) + eps);
-            if cv < 0.5
-                set(gca, 'Color', [1 0.85 0.85]); % light red = collinear
-            end
-        end
-    end
-end
-sgtitle('SSC Ratio Analysis (red background = near-constant ratio = collinear)', 'FontSize', 14, 'FontWeight', 'bold');
-saveas(gcf, fullfile(figDir, 'fig02b_SSC_ratio_7params.png'));
+%% SSC ratio analysis -- skipped (collinearity now checked via correlation matrix)
 
 % Print max |SSC| for each parameter to help decide which to fix
 fprintf('\n--- SSC Analysis (all 7 params) ---\n');
@@ -206,7 +185,7 @@ plot(xs, ypredInit, '-k', x, yobs, 'or');
 xlabel('time (hr)'); ylabel('log_{10}N (log cfu/mL)');
 title('Initial guess (5 params, Tmin & b fixed) vs observed data');
 legend('Predicted (initial guess)','Observed','location','best');
-saveas(gcf, fullfile(figDir, 'fig03_initial_guess_5params.png'));
+% saveas(gcf, fullfile(figDir, 'fig03_initial_guess_5params.png'));
 %%
 %% X' = SSC for 5 estimable parameters (Round 1)
 Xp_r1 = SSC_V3(beta0_r1, xs, fnameFOR_r1);
@@ -217,10 +196,10 @@ hold on
 set(gca, 'fontsize',18,'fontweight','bold');
 clear h2
 for i = 1:p_r1
-    h2(i) = plot(xs(1:ns), Xp_r1(1:ns,i), '-', 'color', cmap(i,:), 'LineWidth', 3);
+    h2(i) = plot(xs(1:ns), Xp_r1(1:ns,i), '-', 'color', paramColorMap(pnames_r1{i}), 'LineWidth', 3);
 end
 ypred = fnameFOR_r1(beta0_r1, xs);
-h2(p_r1+1) = plot(xs, ypred, '--', 'color', cmap(p_r1+1,:), 'LineWidth', 4);
+h2(p_r1+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
 legStr_r1 = cell(1, p_r1+1);
 for i = 1:p_r1
     legStr_r1{i} = [pnames_r1{i}, '*\partialY/\partial(', pnames_r1{i}, ')'];
@@ -231,7 +210,7 @@ xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 title('SSC using initial guesses -- 5 params (Tmin & b fixed)');
 grid on
-saveas(gcf, fullfile(figDir, 'fig04_SSC_5params_round1.png'));
+% saveas(gcf, fullfile(figDir, 'fig04_SSC_5params_round1.png'));
 %%
 %% Round 1 nlinfit -- OLS inverse problem (5 params)
 [beta_r1, resids_r1, J_r1, COVB_r1, mse_r1] = nlinfit(x, yobs, fnameINV_r1, beta0_r1, opts);
@@ -262,10 +241,10 @@ clear h2
 hold on
 set(gca, 'fontsize',14,'fontweight','bold');
 for i = 1:p_r1
-    h2(i) = plot(xs(1:ns), Xp_r1_final(1:ns,i), '-', 'color', cmap(i,:), 'LineWidth', 3);
+    h2(i) = plot(xs(1:ns), Xp_r1_final(1:ns,i), '-', 'color', paramColorMap(pnames_r1{i}), 'LineWidth', 3);
 end
 ypred = fnameFOR_r1(beta_r1, xs);
-h2(p_r1+1) = plot(xs, ypred, '--', 'color', cmap(p_r1+1,:), 'LineWidth', 4);
+h2(p_r1+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
 legend(h2, legStr_r1, 'location', 'best');
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
@@ -274,23 +253,28 @@ title(sprintf('Round 1 SSC (estimated, 5 params)  Max|SSC|: A=%.1f C=%.1f M=%.1f
     max(abs(Xp_r1_final(:,3))), max(abs(Xp_r1_final(:,4))), ...
     max(abs(Xp_r1_final(:,5)))));
 grid on
-saveas(gcf, fullfile(figDir, 'fig05_SSC_5params_estimated.png'));
+% saveas(gcf, fullfile(figDir, 'fig05_SSC_5params_estimated.png'));
 
-fprintf('\nFix a and estimate Tmax instead. Remaining: A, C, M, Tmax (p=4)\n');
+fprintf('\n--- Round 1 Collinearity Check ---\n');
+fprintf('  R(C, Tmax)  = %.4f  => highly correlated\n', R_r1(2,5));
+fprintf('  R(M, a)     = %.4f  => highly correlated\n', R_r1(3,4));
+fprintf('  cond(J)     = %.4e  (should be < 1e6)\n', condX_r1);
+fprintf('\nC-Tmax collinearity (R=%.3f): fix Tmax at literature value.\n', R_r1(2,5));
+fprintf('Remaining parameters to estimate: A, C, M, a (p=4)\n');
 %%
-%% ======== Round 2: Fix Tmin, b, a -- estimate 4 parameters [A,C,M,Tmax] ========
-a_fixed = beta_r1(4);  % use Round 1 estimate for a
+%% ======== Round 2: Fix Tmin, b, Tmax -- estimate 4 parameters [A,C,M,a] ========
+Tmax_fixed = Tmax;  % literature value 46.3 (C-Tmax collinearity R=-0.99)
 
 beta0_r2(1) = beta_r1(1);  % A from Round 1
 beta0_r2(2) = beta_r1(2);  % C from Round 1
 beta0_r2(3) = beta_r1(3);  % M from Round 1
-beta0_r2(4) = beta_r1(5);  % Tmax from Round 1
+beta0_r2(4) = beta_r1(4);  % a from Round 1
 p = length(beta0_r2);
-pnames = {'A','C','M','T_{max}'};
+pnames = {'A','C','M','a'};
 %%
-%% define functions for Round 2 (4 params, Tmin, b, a fixed)
-fnameFOR = @(beta,t) gompertzFOR_4b(beta, t, Tmin_fixed, b_fixed, a_fixed);
-fnameINV = @(beta,t) gompertzINV_4b(beta, t, Tmin_fixed, b_fixed, a_fixed);
+%% define functions for Round 2 (4 params, Tmin, b, Tmax fixed)
+fnameFOR = @(beta,t) gompertzFOR_4a(beta, t, Tmin_fixed, b_fixed, Tmax_fixed);
+fnameINV = @(beta,t) gompertzINV_4a(beta, t, Tmin_fixed, b_fixed, Tmax_fixed);
 %%
 %% Round 2 SSC using initial guesses (before nlinfit)
 Xp_r2_init = SSC_V3(beta0_r2, xs, fnameFOR);
@@ -305,17 +289,17 @@ set(gca, 'fontsize',14,'fontweight','bold');
 clear h2
 legStr_r2i = cell(1, p+1);
 for i = 1:p
-    h2(i) = plot(xs(1:ns), Xp_r2_init(1:ns,i), '-', 'color', cmap(i,:), 'LineWidth', 3);
+    h2(i) = plot(xs(1:ns), Xp_r2_init(1:ns,i), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 3);
     legStr_r2i{i} = [pnames{i}, '*\partialY/\partial(', pnames{i}, ')'];
 end
 ypred = fnameFOR(beta0_r2, xs);
-h2(p+1) = plot(xs, ypred, '--', 'color', cmap(p+1,:), 'LineWidth', 4);
+h2(p+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
 legStr_r2i{p+1} = 'Y';
 legend(h2, legStr_r2i, 'location', 'best');
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 maxSSC_r2i = max(abs(Xp_r2_init));
-title(sprintf('Round 2 SSC — before nlinfit  (Max|SSC|: A=%.1f C=%.1f M=%.1f T_{max}=%.1f)', ...
+title(sprintf('Round 2 SSC — before nlinfit  (Max|SSC|: A=%.1f C=%.1f M=%.1f a=%.1f)', ...
     maxSSC_r2i(1), maxSSC_r2i(2), maxSSC_r2i(3), maxSSC_r2i(4)));
 grid on
 saveas(gcf, fullfile(figDir, 'fig06a_SSC_4params_initial.png'));
@@ -348,6 +332,21 @@ ci = nlparci(beta, resids, J)
 R
 sigma          % parameter standard errors
 relerr = sigma./beta'  % relative error (coefficient of variation)
+
+fprintf('\n--- Round 2 Collinearity Check ---\n');
+for i = 1:p
+    for j = i+1:p
+        fprintf('  R(%s, %s) = %.4f', pnames{i}, pnames{j}, R(i,j));
+        if abs(R(i,j)) > 0.95
+            fprintf('  <-- highly correlated');
+        end
+        fprintf('\n');
+    end
+end
+fprintf('  cond(J) = %.4e  (should be < 1e6)\n', condX);
+if condX < 1e6
+    fprintf('  cond(J) < 1e6: parameter set is well-conditioned.\n');
+end
 %%
 %% Confidence and prediction intervals for the dependent variable
 [ypred, delta]   = nlpredci(fnameINV, x, beta, resids, J, 0.05, 'on', 'curve');
@@ -474,17 +473,17 @@ set(gca, 'fontsize',14,'fontweight','bold');
 clear h2
 legStr_r2 = cell(1, p+1);
 for i = 1:p
-    h2(i) = plot(xs(1:ns), Xp(1:ns,i), '-', 'color', cmap(i,:), 'LineWidth', 3);
+    h2(i) = plot(xs(1:ns), Xp(1:ns,i), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 3);
     legStr_r2{i} = [pnames{i}, '*\partialY/\partial(', pnames{i}, ')'];
 end
 ypred = fnameFOR(beta, xs);
-h2(p+1) = plot(xs, ypred, '--', 'color', cmap(p+1,:), 'LineWidth', 4);
+h2(p+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
 legStr_r2{p+1} = 'Y';
 legend(h2, legStr_r2, 'location', 'best');
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 maxSSC_r2f = max(abs(Xp));
-title(sprintf('Round 2 SSC — after nlinfit  (Max|SSC|: A=%.1f C=%.1f M=%.1f T_{max}=%.1f)', ...
+title(sprintf('Round 2 SSC — after nlinfit  (Max|SSC|: A=%.1f C=%.1f M=%.1f a=%.1f)', ...
     maxSSC_r2f(1), maxSSC_r2f(2), maxSSC_r2f(3), maxSSC_r2f(4)));
 grid on
 saveas(gcf, fullfile(figDir, 'fig10_SSC_4params_final.png'));
@@ -525,17 +524,16 @@ subplot(2,1,2)
 hold on
 set(gca, 'fontsize',14,'fontweight','bold');
 for i = 1:p
-    semilogy(npts_vec, Cii_all(:,i), '-', 'color', cmap(i,:), 'LineWidth', 2);
+    plot(npts_vec, Cii_all(:,i), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 2);
 end
-set(gca, 'YScale', 'log');
 xlabel('Number of equally-spaced data points');
-ylabel('C_{ii} (log scale)');
+ylabel('C_{ii}');
 title('Diagonal elements of (X^TX)^{-1}');
 legend(pnames, 'Location', 'best');
 grid on
 hold off
 saveas(gcf, fullfile(figDir, 'fig11_OED_delta_Cii.png'));
-nBoot = 100;
+nBoot = 600;
 betaBoot = zeros(nBoot, p);
 ypredBoot = zeros(nBoot, ns);
 
@@ -649,10 +647,10 @@ function logN = gompertzINV_5(beta, t, Tmin, b)
     logN = Y(ic, 1);
 end
 
-%% Forward model -- 4 parameters (Tmin, b, a fixed) -- Round 2
-function logN = gompertzFOR_4b(beta, t, Tmin, b, a)
+%% Forward model -- 4 parameters (Tmin, b, Tmax fixed) -- Round 2
+function logN = gompertzFOR_4a(beta, t, Tmin, b, Tmax)
     A=beta(1); C=beta(2); M=beta(3);
-    Tmax=beta(4);
+    a=beta(4);
     tAll = t(:);
     [tUniq, ~, ic] = unique(tAll);
     y0 = A;
@@ -660,10 +658,10 @@ function logN = gompertzFOR_4b(beta, t, Tmin, b, a)
     logN = Y(ic, 1);
 end
 
-%% Inverse model -- 4 parameters (Tmin, b, a fixed) -- Round 2
-function logN = gompertzINV_4b(beta, t, Tmin, b, a)
+%% Inverse model -- 4 parameters (Tmin, b, Tmax fixed) -- Round 2
+function logN = gompertzINV_4a(beta, t, Tmin, b, Tmax)
     A=beta(1); C=beta(2); M=beta(3);
-    Tmax=beta(4);
+    a=beta(4);
     tAll = t(:);
     [tUniq, ~, ic] = unique(tAll);
     y0 = A;

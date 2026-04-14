@@ -29,9 +29,9 @@ slprj/
 
 
 # ============================================================
-# Generated figures (reproducible from salmonella_gompertz.m)
+# Generated figures — now tracked for Beamer template
 # ============================================================
-figures/
+# figures/
 
 # ============================================================
 # macOS

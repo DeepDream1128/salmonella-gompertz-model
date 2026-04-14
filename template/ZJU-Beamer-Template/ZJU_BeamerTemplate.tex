@@ -188,58 +188,7 @@
 	\end{columns}
 \end{frame}
 
-% ============================================================
-% Slide 7: Round 1 — Estimate 5 Parameters
-% ============================================================
-\begin{frame}
-	\frametitle{Round 1 — Estimate 5 Parameters $[A, C, M, a, T_{\max}]$}
-	\begin{columns}[T]
-		\begin{column}{0.38\textwidth}
-			\begin{itemize}
-				\item Fixed: $T_{\min} = 6\,{}^{\circ}\text{C}$, $b = 0.275$
-				\item Estimated: $A, C, M, a, T_{\max}$ ($p = 5$)
-			\end{itemize}
-		\end{column}
-		\begin{column}{0.60\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[width=\linewidth]{fig04_SSC_5params_round1.png}
-				\caption{Fig 4. SSC with initial guesses (5 params)}
-			\end{figure}
-		\end{column}
-	\end{columns}
-\end{frame}
-
-% ============================================================
-% Slide 8: Round 1 Results & Parameter Selection Step 2
-% ============================================================
-\begin{frame}
-	\frametitle{Round 1 Results \& Parameter Selection Step 2}
-	\begin{columns}[T]
-		\begin{column}{0.45\textwidth}
-			\begin{itemize}
-				\footnotesize
-				\item \texttt{nlinfit} OLS estimation (5 params): $[A,C,M,a,T_{\max}]$
-				\item $\text{cond}(\mathbf{J}) = 1.92\times 10^6$ — still ill-conditioned
-				\item Correlation matrix: $M$--$a$ ($R=-0.994$), $C$--$T_{\max}$ ($R=-0.991$)
-			\end{itemize}
-			\vspace{0.2em}
-			\begin{alertblock}{\footnotesize Key Finding}
-				\scriptsize $a$ and $M$ are highly collinear: SSC shapes nearly proportional $\Rightarrow$ one must be fixed.
-			\end{alertblock}
-			\begin{block}{\footnotesize Decision}
-				\scriptsize Fix $a$ at Round 1 estimate $\Rightarrow$ reduce to \textbf{4 parameters} $[A,C,M,T_{\max}]$.
-			\end{block}
-		\end{column}
-		\begin{column}{0.53\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[width=\linewidth]{fig05_SSC_5params_estimated.png}
-				\caption{Fig 5. SSC at estimated values (5 params)}
-			\end{figure}
-		\end{column}
-	\end{columns}
-\end{frame}
+% Slides 7--8 (Round 1) removed: parameters fixed in one step (7 → 4)
 
 % ============================================================
 % Slide 9: Parameter Selection Summary
@@ -256,18 +205,18 @@
 			A & 2.61 & \checkmark Yes & \textbf{Estimate} & OLS result \\
 			C & 5.11 & \checkmark Yes & \textbf{Estimate} & OLS result \\
 			M & 5.45 & \checkmark Yes & \textbf{Estimate} & OLS result \\
-			$T_{\max}$ & 9.02 & \checkmark Yes & \textbf{Estimate} & OLS result \\
-			$a$ & 2.20 & $\triangle$ Collinear w/ $M$ & Fix (Round 1 est.) & from Round 1 \\
+			$a$ & 2.20 & \checkmark Yes & \textbf{Estimate} & OLS result \\
 			$b$ & 0.88 & $\times$ Low SSC & Fix (literature) & $0.275\,{}^{\circ}\text{C}^{-1}$ \\
 			$T_{\min}$ & 0.83 & $\times$ Lowest SSC & Fix (literature) & $6\,{}^{\circ}\text{C}$ \\
+			$T_{\max}$ & 9.02 & $\triangle$ $C$--$T_{\max}$ collinear & Fix (literature) & $46.3\,{}^{\circ}\text{C}$ \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 	\vspace{0.3em}
 	\begin{itemize}
-		\item \textbf{Stepwise elimination}: $7 \to 5$ (fix $T_{\min}$, $b$) $\to 4$ (fix $a$)
-		\item \textbf{Final estimable parameters}: $[A, C, M, T_{\max}]$, $\text{cond}(\mathbf{J}) = 293 \ll 10^6$ ✓
-		\item SSC magnitude + collinearity check (ratio plot + $\text{cond}(\mathbf{J})$) together determine parameter selection
+		\item \textbf{Direct elimination}: $7 \to 4$ — fix $T_{\min}$, $b$ (low SSC), $T_{\max}$ ($C$--$T_{\max}$ collinearity $R=-0.991$, fix at literature value $46.3\,{}^{\circ}\text{C}$)
+		\item \textbf{Final estimable parameters}: $[A, C, M, a]$
+		\item After estimation: all $|R_{ij}| < 0.60$, $\text{cond}(\mathbf{J}) = 1.19\times10^4 \ll 10^6$ ✓
 	\end{itemize}
 \end{frame}
 
@@ -276,7 +225,7 @@
 % ============================================================
 \section{OLS Results}
 \begin{frame}
-	\frametitle{OLS Inverse Problem — Final Results ($[A, C, M, T_{\max}]$)}
+	\frametitle{OLS Inverse Problem — Final Results ($[A, C, M, a]$)}
 	\begin{table}[ht]
 		\centering
 		\footnotesize
@@ -284,18 +233,18 @@
 			\toprule
 			Param & Estimate & $\sigma$ & Rel Err & 95\% CI \\
 			\midrule
-			$A$ & 2.244 & 0.122 & 5.5\% & [1.985,\ 2.504] \\
-			$C$ & 13.387 & 0.519 & 3.9\% & [12.29,\ 14.49] \\
-			$M$ & 3.529 & 0.023 & 0.7\% & [3.479,\ 3.578] \\
-			$T_{\max}$ & 41.651 & 0.022 & 0.05\% & [41.60,\ 41.70] \\
+			$A$ & 2.352 & 0.138 & 5.9\% & [2.059,\ 2.645] \\
+			$C$ & 11.197 & 0.370 & 3.3\% & [10.41,\ 11.98] \\
+			$M$ & 5.559 & 0.183 & 3.3\% & [5.172,\ 5.946] \\
+			$a$ & 0.000300 & 0.0000357 & 11.9\% & [0.0002,\ 0.0004] \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 	\vspace{0.1em}
 	\begin{itemize}
-		\item Fixed: $T_{\min}=6\,{}^{\circ}\text{C}$,\ $b=0.275$,\ $a=3.6\times10^{-4}$ (Round 1 est.)
-		\item $\text{cond}(\mathbf{J}) = 293 \ll 10^6$ ✓\quad RMSE $= 0.367$\quad relRMSE $= 6.3\%$\quad $R^2 = 0.972$
-		\item Correlation: $C$--$T_{\max}$ ($R=-0.990$), $A$--$M$ ($R=-0.956$) — correlated but distinguishable
+		\item Fixed: $T_{\min}=6\,{}^{\circ}\text{C}$,\ $b=0.275$,\ $T_{\max}=46.3\,{}^{\circ}\text{C}$ (literature)
+		\item $\text{cond}(\mathbf{J}) = 1.19\times10^4$\quad RMSE $= 0.225$\quad relRMSE $= 3.72\%$\quad $R^2 = 0.989$
+		\item All $|R_{ij}| < 0.60$: no collinearity issues
 	\end{itemize}
 \end{frame}
 
@@ -350,26 +299,27 @@
 % Slide 13: SSC Convergence — Round 2 Before vs After
 % ============================================================
 \begin{frame}
-	\frametitle{SSC Convergence — Round 2 Before \& After Estimation}
+	\frametitle{SSC Convergence — Before \& After Estimation}
+	\vspace{-0.3em}
 	\begin{columns}[T]
 		\begin{column}{0.48\textwidth}
 			\begin{figure}
 				\centering
-				\includegraphics[width=\linewidth]{fig06a_SSC_4params_initial.png}
-				\caption{Fig 9a. SSC using Round 1 estimates as initial guess}
+				\includegraphics[width=0.92\linewidth]{fig06a_SSC_4params_initial.png}
+				\caption{\scriptsize Fig 9a. SSC (initial guess)}
 			\end{figure}
 		\end{column}
 		\begin{column}{0.48\textwidth}
 			\begin{figure}
 				\centering
-				\includegraphics[width=\linewidth]{fig10_SSC_4params_final.png}
-				\caption{Fig 9b. SSC after Round 2 OLS estimation}
+				\includegraphics[width=0.92\linewidth]{fig10_SSC_4params_final.png}
+				\caption{\scriptsize Fig 9b. SSC (after OLS)}
 			\end{figure}
 		\end{column}
 	\end{columns}
-	\vspace{0.3em}
-	\begin{block}{\small SSC Convergence Criterion}
-		\small SSC shapes and magnitudes are consistent before and after Round 2 estimation $\Rightarrow$ parameter set is \textbf{stable and identifiable}; no further reduction needed.
+	\vspace{-0.2em}
+	\begin{block}{\scriptsize SSC Convergence}
+		\scriptsize Consistent SSC shapes before \& after estimation $\Rightarrow$ parameters \textbf{stable and identifiable}.
 	\end{block}
 \end{frame}
 
@@ -384,8 +334,8 @@
 			\vspace{1em}
 			\begin{itemize}
 				\item Equally-spaced \texttt{linspace} points (consistent with \texttt{inv\_soln5.m}); unscaled Jacobian $J=\partial Y/\partial\beta$
-				\item Spikes at $n\approx27,34,48$: aliasing — equally-spaced points align with the $T_{\max}$ SSC peak at $t\approx12\,\text{hr}$
-				\item For $n<22$: smooth increase of $\Delta$; $A$ has smallest $C_{ii}$ (most accurately determinable), $C$ most uncertain
+				\item $\Delta$ criterion increases monotonically $\Rightarrow$ more data always helps
+				\item $C_{ii}$ (parameter variance) decreases with more data points for all 4 parameters
 			\end{itemize}
 		\end{column}
 		\begin{column}{0.58\textwidth}
@@ -407,7 +357,7 @@
 	\begin{columns}[T]
 		\begin{column}{0.45\textwidth}
 			\footnotesize
-			1000 bootstrap iterations (residual resampling), 1000/1000 valid.
+			600 bootstrap iterations (residual resampling), 600/600 valid.
 			\vspace{0.3em}
 			\begin{table}[ht]
 				\centering
@@ -416,10 +366,10 @@
 				\toprule
 				Param & Bootstrap 95\% CI & Asymptotic 95\% CI \\
 				\midrule
-				$A$ & [2.161,\ 2.511] & [1.985,\ 2.504] \\
-				$C$ & [12.59,\ 14.61] & [12.29,\ 14.49] \\
-				$M$ & [3.381,\ 3.612] & [3.479,\ 3.578] \\
-				$T_{\max}$ & [41.29,\ 42.02] & [41.60,\ 41.70] \\
+				$A$ & [2.113,\ 2.596] & [2.059,\ 2.645] \\
+				$C$ & [10.63,\ 12.02] & [10.41,\ 11.98] \\
+				$M$ & [5.174,\ 5.850] & [5.172,\ 5.946] \\
+				$a$ & [2.57e-4,\ 3.88e-4] & [2.0e-4,\ 4.0e-4] \\
 				\bottomrule
 			\end{tabular}
 			\end{table}
@@ -445,16 +395,16 @@
 			\toprule
 			Metric & Asymptotic & Bootstrap \\
 			\midrule
-			CB width (avg) & 1.044 & \textbf{0.372} \\
-			PB width (avg) & 3.032 & \textbf{1.812} \\
+			CB width (avg) & 0.687 & \textbf{0.340} \\
+			PB width (avg) & 1.858 & \textbf{1.220} \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 	\vspace{0.5em}
 	\begin{itemize}
-		\item Bootstrap CB is $\mathbf{3\times}$ narrower; Bootstrap PB is $\mathbf{1.7\times}$ narrower
-		\item Asymptotic method overestimates uncertainty due to $C$--$T_{\max}$ ($R=-0.990$) and $A$--$M$ ($R=-0.956$) correlations inflating the covariance matrix
-		\item Bootstrap provides more realistic uncertainty quantification for this nonlinear problem
+		\item Bootstrap CB is $\mathbf{2\times}$ narrower; Bootstrap PB is $\mathbf{1.5\times}$ narrower
+		\item Asymptotic method overestimates uncertainty for this nonlinear model
+		\item Bootstrap provides more realistic uncertainty quantification
 	\end{itemize}
 \end{frame}
 
@@ -466,9 +416,9 @@
 	\frametitle{Conclusions}
 	\begin{enumerate}
 		\item Modified Gompertz model successfully predicts \textit{Salmonella} growth under sinusoidal temperature
-		\item \textbf{Parameter selection}: SSC analysis + collinearity check $\Rightarrow$ identified $[A, C, M, T_{\max}]$ as estimable via stepwise elimination ($7\to5\to4$); fixed $T_{\min}$, $b$ (low SSC) and $a$ (collinear with $M$)
-		\item Robust OLS fit achieved: $\text{cond}(\mathbf{J})=293$, relRMSE $= 6.3\%$, $R^2 = 0.972$; residual autocorrelation (runs test: 6 $<$ 10.5) suggests potential for model improvement
-		\item Bootstrap CI are narrower than asymptotic CI $\Rightarrow$ asymptotic method overestimates uncertainty due to $C$--$T_{\max}$ ($R=-0.990$) and $A$--$M$ ($R=-0.956$) correlations
+		\item \textbf{Parameter selection}: SSC analysis $\Rightarrow$ fix $T_{\min}$, $b$ (low SSC) and $T_{\max}$ ($C$--$T_{\max}$ collinearity $R=-0.991$); estimate $[A, C, M, a]$ ($7 \to 4$ direct elimination)
+		\item Robust OLS fit: $\text{cond}(\mathbf{J})=1.19\times10^4$, relRMSE $= 3.72\%$, $R^2 = 0.989$; all $|R_{ij}| < 0.60$; residual autocorrelation (runs $= 6 < 10.5$) suggests model improvement potential
+		\item Bootstrap CI narrower than asymptotic CI ($2\times$ for CB, $1.5\times$ for PB) $\Rightarrow$ asymptotic method overestimates uncertainty
 	\end{enumerate}
 \end{frame}
 
