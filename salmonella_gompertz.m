@@ -74,7 +74,11 @@ xs = linspace(min(x), max(x), 200)';
 ns = length(xs);
 ypredInit = fnameFOR_all(beta_all, xs);
 figure
-plot(xs, ypredInit, '-k', x, yobs, 'or');
+set(gca, 'fontsize',16,'fontweight','bold');
+plot(xs, ypredInit, '-k', 'LineWidth', 2);
+hold on
+plot(x, yobs, 'or', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
+hold off
 xlabel('time (hr)'); ylabel('log_{10}N (log cfu/mL)');
 title('Initial guess vs observed data');
 legend('Predicted (initial guess)','Observed','location','best');
@@ -210,7 +214,7 @@ xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 title('SSC using initial guesses -- 5 params (Tmin & b fixed)');
 grid on
-% saveas(gcf, fullfile(figDir, 'fig04_SSC_5params_round1.png'));
+saveas(gcf, fullfile(figDir, 'fig06a_SSC_5params_initial.png'));
 %%
 %% Round 1 nlinfit -- OLS inverse problem (5 params)
 [beta_r1, resids_r1, J_r1, COVB_r1, mse_r1] = nlinfit(x, yobs, fnameINV_r1, beta0_r1, opts);
@@ -248,105 +252,62 @@ h2(p_r1+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
 legend(h2, legStr_r1, 'location', 'best');
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
-title(sprintf('Round 1 SSC (estimated, 5 params)  Max|SSC|: A=%.1f C=%.1f M=%.1f a=%.1f T_{max}=%.1f', ...
-    max(abs(Xp_r1_final(:,1))), max(abs(Xp_r1_final(:,2))), ...
-    max(abs(Xp_r1_final(:,3))), max(abs(Xp_r1_final(:,4))), ...
-    max(abs(Xp_r1_final(:,5)))));
+title('SSC using estimated parameters (5 params)');
 grid on
 % saveas(gcf, fullfile(figDir, 'fig05_SSC_5params_estimated.png'));
 
-fprintf('\n--- Round 1 Collinearity Check ---\n');
-fprintf('  R(C, Tmax)  = %.4f  => highly correlated\n', R_r1(2,5));
-fprintf('  R(M, a)     = %.4f  => highly correlated\n', R_r1(3,4));
-fprintf('  cond(J)     = %.4e  (should be < 1e6)\n', condX_r1);
-fprintf('\nC-Tmax collinearity (R=%.3f): fix Tmax at literature value.\n', R_r1(2,5));
-fprintf('Remaining parameters to estimate: A, C, M, a (p=4)\n');
-%%
-%% ======== Round 2: Fix Tmin, b, Tmax -- estimate 4 parameters [A,C,M,a] ========
-Tmax_fixed = Tmax;  % literature value 46.3 (C-Tmax collinearity R=-0.99)
-
-beta0_r2(1) = beta_r1(1);  % A from Round 1
-beta0_r2(2) = beta_r1(2);  % C from Round 1
-beta0_r2(3) = beta_r1(3);  % M from Round 1
-beta0_r2(4) = beta_r1(4);  % a from Round 1
-p = length(beta0_r2);
-pnames = {'A','C','M','a'};
-%%
-%% define functions for Round 2 (4 params, Tmin, b, Tmax fixed)
-fnameFOR = @(beta,t) gompertzFOR_4a(beta, t, Tmin_fixed, b_fixed, Tmax_fixed);
-fnameINV = @(beta,t) gompertzINV_4a(beta, t, Tmin_fixed, b_fixed, Tmax_fixed);
-%%
-%% Round 2 SSC using initial guesses (before nlinfit)
-Xp_r2_init = SSC_V3(beta0_r2, xs, fnameFOR);
-fprintf('\n--- Round 2 SSC (initial, before nlinfit) ---\n');
-for i = 1:p
-    fprintf('  Max |SSC(%s)| = %.6f\n', pnames{i}, max(abs(Xp_r2_init(:,i))));
-end
-
-figure
-hold on
-set(gca, 'fontsize',14,'fontweight','bold');
-clear h2
-legStr_r2i = cell(1, p+1);
-for i = 1:p
-    h2(i) = plot(xs(1:ns), Xp_r2_init(1:ns,i), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 3);
-    legStr_r2i{i} = [pnames{i}, '*\partialY/\partial(', pnames{i}, ')'];
-end
-ypred = fnameFOR(beta0_r2, xs);
-h2(p+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
-legStr_r2i{p+1} = 'Y';
-legend(h2, legStr_r2i, 'location', 'best');
-xlabel('time (hr)');
-ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
-maxSSC_r2i = max(abs(Xp_r2_init));
-title(sprintf('Round 2 SSC — before nlinfit  (Max|SSC|: A=%.1f C=%.1f M=%.1f a=%.1f)', ...
-    maxSSC_r2i(1), maxSSC_r2i(2), maxSSC_r2i(3), maxSSC_r2i(4)));
-grid on
-saveas(gcf, fullfile(figDir, 'fig06a_SSC_4params_initial.png'));
-%%
-%% Round 2 nlinfit -- OLS inverse problem (4 params)
-[beta, resids, J, COVB, mse] = nlinfit(x, yobs, fnameINV, beta0_r2, opts);
-fprintf('\n===== Round 2 Results (4 params) =====\n');
-beta
-n = length(x);
-p = length(beta);
-rmse = sqrt(mse)
-condX = cond(J)       % should be < 1e6
-detXTX = det(J'*J)    % should be far from zero
-
-% R-squared
-SSres = resids'*resids;
-SStot = sum((yobs - mean(yobs)).^2);
-Rsq = 1 - SSres/SStot;
-Rsq_adj = 1 - (SSres/(n-p)) / (SStot/(n-1));
-fprintf('R^2     = %.4f\n', Rsq);
-fprintf('R^2_adj = %.4f\n', Rsq_adj);
-fprintf('RMSE    = %.4f\n', rmse);
-fprintf('relRMSE = %.4f\n', rmse/range(fnameINV(beta,x)));
-%%
-%% confidence intervals for parameters
-ci = nlparci(beta, resids, J)
-
-% R = correlation matrix, sigma = standard error vector
-[R, sigma] = corrcov(COVB);
-R
-sigma          % parameter standard errors
-relerr = sigma./beta'  % relative error (coefficient of variation)
-
-fprintf('\n--- Round 2 Collinearity Check ---\n');
-for i = 1:p
-    for j = i+1:p
-        fprintf('  R(%s, %s) = %.4f', pnames{i}, pnames{j}, R(i,j));
-        if abs(R(i,j)) > 0.95
+fprintf('\n--- Collinearity Check (5 params) ---\n');
+for ii = 1:p_r1
+    for jj = ii+1:p_r1
+        fprintf('  R(%s, %s) = %.4f', pnames_r1{ii}, pnames_r1{jj}, R_r1(ii,jj));
+        if abs(R_r1(ii,jj)) > 0.95
             fprintf('  <-- highly correlated');
         end
         fprintf('\n');
     end
 end
-fprintf('  cond(J) = %.4e  (should be < 1e6)\n', condX);
-if condX < 1e6
-    fprintf('  cond(J) < 1e6: parameter set is well-conditioned.\n');
-end
+fprintf('  cond(J) = %.4e  (should be < 1e6)\n', condX_r1);
+fprintf('R(C, Tmax)=%.3f: correlated but still estimable (95%% CI excludes zero).\n', R_r1(2,5));
+fprintf('Final estimable parameters: A, C, M, a, Tmax (p=5)\n');
+%%
+%% ======== Final: Round 1 is the final estimation (5 params) ========
+% Reviewer: R(C,Tmax)~0.97 is just enough to allow estimation;
+% 95% CI excludes zero even though error is larger.
+beta = beta_r1;
+resids = resids_r1;
+J = J_r1;
+COVB = COVB_r1;
+mse = mse_r1;
+p = p_r1;
+pnames = pnames_r1;
+fnameFOR = fnameFOR_r1;
+fnameINV = fnameINV_r1;
+n = length(x);
+rmse = sqrt(mse);
+condX = cond(J);
+detXTX = det(J'*J);
+
+SSres = resids'*resids;
+SStot = sum((yobs - mean(yobs)).^2);
+Rsq = 1 - SSres/SStot;
+Rsq_adj = 1 - (SSres/(n-p)) / (SStot/(n-1));
+
+fprintf('\n===== Final OLS Results (5 params: [A,C,M,a,Tmax]) =====\n');
+fprintf('beta =\n'); disp(beta);
+fprintf('R^2     = %.4f\n', Rsq);
+fprintf('R^2_adj = %.4f\n', Rsq_adj);
+fprintf('RMSE    = %.4f\n', rmse);
+fprintf('relRMSE = %.4f\n', rmse/range(fnameINV(beta,x)));
+fprintf('cond(J) = %.4e\n', condX);
+fprintf('det(J''J) = %.4e\n', detXTX);
+
+ci = nlparci(beta, resids, J);
+fprintf('ci =\n'); disp(ci);
+[R, sigma] = corrcov(COVB);
+fprintf('R =\n'); disp(R);
+fprintf('sigma =\n'); disp(sigma);
+relerr = sigma./beta';
+fprintf('relerr =\n'); disp(relerr);
 %%
 %% Confidence and prediction intervals for the dependent variable
 [ypred, delta]   = nlpredci(fnameINV, x, beta, resids, J, 0.05, 'on', 'curve');
@@ -385,21 +346,20 @@ legend(h1, 'ypred', 'yobs', 'CB', 'PB')
 title('OLS fit with asymptotic CB and PB')
 saveas(gcf, fullfile(figDir, 'fig06_OLS_fit_CB_PB.png'));
 %%
-%% 7d. Dual Y-axis plot: logN (left) and Temperature (right)
+%% 7d. Dual Y-axis plot: logN observed + predicted (left) and Temperature (right)
 figure
-set(gca, 'fontsize',14,'fontweight','bold');
+set(gca, 'fontsize',16,'fontweight','bold');
 yyaxis left
+hd(1) = plot(x, yobs, 'sb', 'MarkerSize', 8, 'MarkerFaceColor', 'b');
 hold on
-hd(1) = plot(xs, ypredp, '-b', 'LineWidth', 2);
-hd(2) = plot(x, yobs, 'sb', 'MarkerSize', 8, 'MarkerFaceColor', 'b');
+hd(2) = plot(xs, ypredp, '-b', 'LineWidth', 2);
 ylabel('log_{10}N (log cfu/mL)');
-hold off
 yyaxis right
 hd(3) = plot(tTemp_hr, Tobs, '-r', 'LineWidth', 2);
 ylabel('Temperature (°C)');
 xlabel('time (hr)');
 title('Salmonella growth under sinusoidal temperature');
-legend(hd, 'logN predicted', 'logN observed', 'Temperature', 'location', 'best');
+legend(hd, 'logN observed', 'logN predicted', 'Temperature', 'location', 'best');
 grid on
 saveas(gcf, fullfile(figDir, 'fig07_dual_axis_logN_temp.png'));
 figure
@@ -466,69 +426,83 @@ saveas(gcf, fullfile(figDir, 'fig09_residual_histogram.png'));
 clear Xp ypred
 Xp = SSC_V3(beta, xs, fnameFOR);
 %%
-%% plot X' final (Round 2)
+%% plot X' final (5 params, after nlinfit)
 figure
 hold on
 set(gca, 'fontsize',14,'fontweight','bold');
 clear h2
-legStr_r2 = cell(1, p+1);
+legStr_final = cell(1, p+1);
 for i = 1:p
     h2(i) = plot(xs(1:ns), Xp(1:ns,i), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 3);
-    legStr_r2{i} = [pnames{i}, '*\partialY/\partial(', pnames{i}, ')'];
+    legStr_final{i} = [pnames{i}, '*\partialY/\partial(', pnames{i}, ')'];
 end
 ypred = fnameFOR(beta, xs);
 h2(p+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
-legStr_r2{p+1} = 'Y';
-legend(h2, legStr_r2, 'location', 'best');
+legStr_final{p+1} = 'Y';
+legend(h2, legStr_final, 'location', 'best');
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
-maxSSC_r2f = max(abs(Xp));
-title(sprintf('Round 2 SSC — after nlinfit  (Max|SSC|: A=%.1f C=%.1f M=%.1f a=%.1f)', ...
-    maxSSC_r2f(1), maxSSC_r2f(2), maxSSC_r2f(3), maxSSC_r2f(4)));
+maxSSC_final = max(abs(Xp));
+title('Final SSC — after nlinfit (5 params)');
 grid on
-saveas(gcf, fullfile(figDir, 'fig10_SSC_4params_final.png'));
+saveas(gcf, fullfile(figDir, 'fig10_SSC_5params_final.png'));
 %%
-%% Optimal Experimental Design -- Delta criterion
-% Follows inv_soln5.m: use linspace (equally-spaced) points for each n,
-% compute det(J'*J) where J = unscaled Jacobian = dY/dbeta.
-% To get the unscaled J from SSC_V3: J(:,j) = SSC_V3_result(:,j) / beta(j)
-npts_vec = 5:1:50;
-delta_crit = zeros(size(npts_vec));
-Cii_all    = zeros(length(npts_vec), p);
-tLo = min(x); tHi = max(x);
+%% Optimal Experimental Design -- Beck & Arnold (1977) Eq. 8.3.5
+% C_ij(t) = (1/t) * cumtrapz(t, X'_i * X'_j)
+% delta(t) = det(C(t)),  Cii = diag(C(t))
+% Follows optexp_Fig8_10v2.m exactly
+tOED = linspace(0, max(tTemp_hr), 300)';
+mOED = length(tOED);
 
-for k = 1:length(npts_vec)
-    nk  = npts_vec(k);
-    tk  = linspace(tLo, tHi, nk)';          % equally-spaced, like inv_soln5.m
-    Xpk = SSC_V3(beta, tk, fnameFOR);        % scaled: beta_j * dY/dbeta_j
-    % Convert to unscaled Jacobian J = dY/dbeta  (matches inv_soln5.m)
-    J_oed = Xpk ./ beta;                     % divide each column j by beta(j)
-    XTX   = J_oed' * J_oed;
-    d = det(XTX);
-    if d > 0 && isfinite(d)
-        delta_crit(k) = d;
-        Cii_all(k,:)  = diag(inv(XTX))';
+Xp_oed = SSC_V3(beta, tOED, fnameFOR);
+
+Coed = cell(p, p);
+for i = 1:p
+    for j = 1:p
+        intgrnd = Xp_oed(:,i) .* Xp_oed(:,j);
+        Coed{i,j} = (1./tOED) .* cumtrapz(tOED, intgrnd);
     end
+end
+
+CC = zeros(p, p, mOED);
+for i = 1:p
+    for j = 1:p
+        CC(i,j,:) = Coed{i,j};
+    end
+end
+
+CC(:,:,1) = 0;
+CC(1,1,1) = 1;  % A (param 1) is the initial value => C11(0) = 1
+
+delta_oed = zeros(1, mOED);
+delta_oed(1) = 0;
+for k = 2:mOED
+    delta_oed(k) = det(CC(:,:,k));
+end
+
+Cp = zeros(p, mOED);
+for i = 1:p
+    Cp(i,:) = CC(i,i,:);
 end
 
 figure
 subplot(2,1,1)
-semilogy(npts_vec, delta_crit, '-bo', 'LineWidth', 2, 'MarkerFaceColor', 'b');
+plot(tOED, delta_oed, '-b', 'LineWidth', 2);
 set(gca, 'fontsize',14,'fontweight','bold');
-xlabel('Number of equally-spaced data points');
-ylabel('det(X^TX) (log scale)');
-title('\Delta Criterion  (equally-spaced points, unscaled Jacobian)');
+xlabel('time (hr)');
+ylabel('\Delta = det(C)');
+title('\Delta Criterion  (Beck & Arnold Eq. 8.3.5)');
 grid on
 
 subplot(2,1,2)
 hold on
 set(gca, 'fontsize',14,'fontweight','bold');
 for i = 1:p
-    plot(npts_vec, Cii_all(:,i), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 2);
+    plot(tOED, Cp(i,:), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 2);
 end
-xlabel('Number of equally-spaced data points');
+xlabel('time (hr)');
 ylabel('C_{ii}');
-title('Diagonal elements of (X^TX)^{-1}');
+title('Diagonal elements of C');
 legend(pnames, 'Location', 'best');
 grid on
 hold off
@@ -551,6 +525,10 @@ optsBoot.TolX    = 1e-6;   % relaxed from default 1e-8
 
 rng(42);
 nFailed = 0;
+warning('off', 'stats:nlinfit:IllConditionedJacobian');
+warning('off', 'stats:nlinfit:ModelConstantWRTParam');
+warning('off', 'MATLAB:rankDeficientMatrix');
+warning('off', 'MATLAB:nearlySingularMatrix');
 for ib = 1:nBoot
     bootIdx = randi(n, n, 1);
     bootResids = resids(bootIdx);
@@ -568,6 +546,10 @@ for ib = 1:nBoot
         fprintf('Bootstrap iteration %d/%d\n', ib, nBoot);
     end
 end
+warning('on', 'stats:nlinfit:IllConditionedJacobian');
+warning('on', 'stats:nlinfit:ModelConstantWRTParam');
+warning('on', 'MATLAB:rankDeficientMatrix');
+warning('on', 'MATLAB:nearlySingularMatrix');
 if nFailed > 0
     fprintf('Bootstrap: %d/%d iterations failed (caught as NaN)\n', nFailed, nBoot);
 end
@@ -575,7 +557,19 @@ end
 validIdx = ~any(isnan(betaBoot),2);
 betaBoot = betaBoot(validIdx,:);
 ypredBoot = ypredBoot(validIdx,:);
-fprintf('Valid bootstrap iterations: %d/%d\n', sum(validIdx), nBoot);
+
+% Remove outliers: discard iterations where any parameter deviates > 5x from estimate
+outlierIdx = false(size(betaBoot,1), 1);
+for i = 1:p
+    ratio = abs(betaBoot(:,i) ./ beta(i));
+    outlierIdx = outlierIdx | (ratio > 5) | (ratio < 0.2);
+end
+if any(outlierIdx)
+    fprintf('Bootstrap: removed %d outlier iterations\n', sum(outlierIdx));
+    betaBoot = betaBoot(~outlierIdx,:);
+    ypredBoot = ypredBoot(~outlierIdx,:);
+end
+fprintf('Valid bootstrap iterations: %d/%d\n', size(betaBoot,1), nBoot);
 
 fprintf('\n===== Bootstrap 95%% CI =====\n');
 for i = 1:p
@@ -681,11 +675,9 @@ end
 
 %% Secondary model: mu = a*(T-Tmin)^2*(1-exp(b*(T-Tmax)))
 function mu = secModel(T, a, b, Tmin, Tmax)
-    if T <= Tmin || T >= Tmax
-        mu = 0;
-    else
-        mu = a*(T-Tmin).^2.*(1-exp(b*(T-Tmax)));
-    end
+
+    mu = a*(T-Tmin).^2.*(1-exp(b*(T-Tmax)));
+
 end
 
 %% SSC_V3 -- scaled sensitivity coefficients via forward difference
@@ -697,5 +689,20 @@ function Xp = SSC_V3(beta, x, yfunc)
         betain(i) = beta(i)*(1+d);
         yhat = yfunc(betain, x);
         Xp(:,i) = (yhat - ypred)/d;
+    end
+end
+
+%% JACOB_CD -- unscaled Jacobian via central difference (matches nlinfit approach)
+function J = JACOB_CD(beta, x, yfunc)
+    d = 0.001;
+    p = length(beta);
+    n = length(x);
+    J = zeros(n, p);
+    for i = 1:p
+        betaP = beta; betaP(i) = beta(i)*(1+d);
+        betaM = beta; betaM(i) = beta(i)*(1-d);
+        yP = yfunc(betaP, x);
+        yM = yfunc(betaM, x);
+        J(:,i) = (yP - yM) / (2*d*beta(i));
     end
 end

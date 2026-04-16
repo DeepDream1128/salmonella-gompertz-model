@@ -18,10 +18,9 @@
 % 首页信息设置
 \title[Salmonella Gompertz Model]{Predictive Modeling of \textit{Salmonella enteritidis} Growth Under Sinusoidal Temperature}
 \subtitle{Modified Gompertz Model \& OLS Parameter Estimation}
-\author[Team]{Team Members} % TODO: 替换为实际成员名
-\institute[ZJU]{生物系统工程与食品科学学院 \\ 浙江大学}
-\date{\today}
-
+\author[Team]{Boyuan Zhao, Wenyu Xu, Yizhou Li} % TODO: 替换为实际成员名
+\institute[ZJU]{College of Biosystems Engineering and Food Science \\ Zhejiang University}
+\date{April 14, 2026}
 \begin{document}
 
 % ============================================================
@@ -104,18 +103,18 @@
 \begin{frame}
 	\frametitle{Data Overview}
 	\begin{columns}[T]
-		\begin{column}{0.45\textwidth}
+		\begin{column}{0.35\textwidth}
 			\begin{itemize}
-				\item Growth data: $\log_{10}(\text{CFU/mL})$ at multiple time points, $n = 20$
-				\item Temperature: sinusoidal $T(t)$ recorded every minute
+				\item Growth data: $\log_{10}(\text{CFU/mL})$, $n = 20$
+				\item Temperature: sinusoidal $T(t)$ every minute
 				\item Two independent time vectors
 			\end{itemize}
 		\end{column}
-		\begin{column}{0.53\textwidth}
+		\begin{column}{0.63\textwidth}
 			\begin{figure}
 				\centering
 				\includegraphics[width=\linewidth]{fig07_dual_axis_logN_temp.png}
-				\caption{Fig 1. Dual-axis: $\log_{10} N$ and $T$ vs.\ time}
+				\caption{Fig 1. Dual-axis: $\log_{10} N$ (observed \& predicted) and $T$ vs.\ time}
 			\end{figure}
 		\end{column}
 	\end{columns}
@@ -128,14 +127,14 @@
 \begin{frame}
 	\frametitle{Forward Problem — Initial Guess}
 	\begin{columns}[T]
-		\begin{column}{0.4\textwidth}
+		\begin{column}{0.32\textwidth}
 			\begin{itemize}
-				\item All 7 parameter guesses from literature (Gumudavelli et al., 2007)
+				\item All 7 guesses from literature
 				\item ODE solved with \texttt{ode45}
-				\item Temperature interpolated via \texttt{interp1}
+				\item $T(t)$ interpolated via \texttt{interp1}
 			\end{itemize}
 		\end{column}
-		\begin{column}{0.58\textwidth}
+		\begin{column}{0.66\textwidth}
 			\begin{figure}
 				\centering
 				\includegraphics[width=\linewidth]{fig01_initial_guess_vs_data.png}
@@ -208,15 +207,14 @@
 			$a$ & 2.20 & \checkmark Yes & \textbf{Estimate} & OLS result \\
 			$b$ & 0.88 & $\times$ Low SSC & Fix (literature) & $0.275\,{}^{\circ}\text{C}^{-1}$ \\
 			$T_{\min}$ & 0.83 & $\times$ Lowest SSC & Fix (literature) & $6\,{}^{\circ}\text{C}$ \\
-			$T_{\max}$ & 9.02 & $\triangle$ $C$--$T_{\max}$ collinear & Fix (literature) & $46.3\,{}^{\circ}\text{C}$ \\
+			$T_{\max}$ & 9.02 & \checkmark Yes & \textbf{Estimate} & OLS result \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 	\vspace{0.3em}
 	\begin{itemize}
-		\item \textbf{Direct elimination}: $7 \to 4$ — fix $T_{\min}$, $b$ (low SSC), $T_{\max}$ ($C$--$T_{\max}$ collinearity $R=-0.991$, fix at literature value $46.3\,{}^{\circ}\text{C}$)
-		\item \textbf{Final estimable parameters}: $[A, C, M, a]$
-		\item After estimation: all $|R_{ij}| < 0.60$, $\text{cond}(\mathbf{J}) = 1.19\times10^4 \ll 10^6$ ✓
+		\item \textbf{Direct elimination}: $7 \to 5$ — fix $T_{\min}$, $b$ (low SSC)
+		\item \textbf{Final estimable parameters}: $[A, C, M, a, T_{\max}]$
 	\end{itemize}
 \end{frame}
 
@@ -225,7 +223,7 @@
 % ============================================================
 \section{OLS Results}
 \begin{frame}
-	\frametitle{OLS Inverse Problem — Final Results ($[A, C, M, a]$)}
+	\frametitle{OLS Inverse Problem — Final Results ($[A, C, M, a, T_{\max}]$)}
 	\begin{table}[ht]
 		\centering
 		\footnotesize
@@ -233,18 +231,19 @@
 			\toprule
 			Param & Estimate & $\sigma$ & Rel Err & 95\% CI \\
 			\midrule
-			$A$ & 2.352 & 0.138 & 5.9\% & [2.059,\ 2.645] \\
-			$C$ & 11.197 & 0.370 & 3.3\% & [10.41,\ 11.98] \\
-			$M$ & 5.559 & 0.183 & 3.3\% & [5.172,\ 5.946] \\
-			$a$ & 0.000300 & 0.0000357 & 11.9\% & [0.0002,\ 0.0004] \\
+			$A$ & 2.358 & 0.146 & 6.2\% & [2.046,\ 2.670] \\
+			$C$ & 11.062 & 2.013 & 18.2\% & [6.771,\ 15.354] \\
+			$M$ & 5.541 & 0.528 & 9.5\% & [4.414,\ 6.667] \\
+			$a$ & 3.0e-4 & 1.1e-4 & 38.3\% & [1.0e-4,\ 6.0e-4] \\
+			$T_{\max}$ & 45.72 & 9.15 & 20.0\% & [26.23,\ 65.22] \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 	\vspace{0.1em}
 	\begin{itemize}
-		\item Fixed: $T_{\min}=6\,{}^{\circ}\text{C}$,\ $b=0.275$,\ $T_{\max}=46.3\,{}^{\circ}\text{C}$ (literature)
-		\item $\text{cond}(\mathbf{J}) = 1.19\times10^4$\quad RMSE $= 0.225$\quad relRMSE $= 3.72\%$\quad $R^2 = 0.989$
-		\item All $|R_{ij}| < 0.60$: no collinearity issues
+		\item Fixed: $T_{\min}=6\,{}^{\circ}\text{C}$,\ $b=0.275$ (literature)
+		\item $\text{cond}(\mathbf{J}) = 3.14\times10^5$\quad RMSE $= 0.232$\quad relRMSE $= 3.84\%$\quad $R^2 = 0.989$
+		\item Correlations: $R(C,T_{\max})\!=\!0.98$, $R(C,a)\!=\!{-}0.97$, $R(a,T_{\max})\!=\!{-}0.94$, $R(C,M)\!=\!0.92$ — all 95\% CI exclude zero
 	\end{itemize}
 \end{frame}
 
@@ -266,33 +265,31 @@
 \section{Model Diagnostics}
 \begin{frame}
 	\frametitle{Residual Analysis}
+	\vspace{-0.3em}
 	\begin{columns}[T]
-		\begin{column}{0.35\textwidth}
+		\begin{column}{0.48\textwidth}
 			\begin{figure}
 				\centering
 				\includegraphics[width=\linewidth]{fig08_residual_scatter.png}
-				\caption{Fig 7. Residual scatter}
+				\caption{\small Fig 7. Residual scatter}
 			\end{figure}
 		\end{column}
-		\begin{column}{0.35\textwidth}
+		\begin{column}{0.48\textwidth}
 			\begin{figure}
 				\centering
 				\includegraphics[width=\linewidth]{fig09_residual_histogram.png}
-				\caption{Fig 8. Residual histogram}
+				\caption{\small Fig 8. Residual histogram}
 			\end{figure}
 		\end{column}
-		\begin{column}{0.28\textwidth}
-			\scriptsize
-			\textbf{5 Assumptions}:
-			\begin{enumerate}
-				\item[\checkmark] Zero mean ($\approx 0.064$)
-				\item[$\triangle$] Constant variance
-				\item[$\triangle$] Uncorrelated (runs $= 6 < 10.5$)
-				\item[\checkmark] Normality
-				\item[\checkmark] Correct model
-			\end{enumerate}
-		\end{column}
 	\end{columns}
+	\vspace{-0.3em}
+	\small
+	\textbf{5 Assumptions}:
+	\checkmark\ Zero mean ($\bar{e}\approx 0.000$)\quad
+	$\triangle$\ Constant variance\quad
+	$\triangle$\ Uncorrelated (runs $= 6 < 10.5$)\quad
+	\checkmark\ Normality\quad
+	\checkmark\ Correct model
 \end{frame}
 
 % ============================================================
@@ -305,21 +302,21 @@
 		\begin{column}{0.48\textwidth}
 			\begin{figure}
 				\centering
-				\includegraphics[width=0.92\linewidth]{fig06a_SSC_4params_initial.png}
+				\includegraphics[width=0.92\linewidth]{fig06a_SSC_5params_initial.png}
 				\caption{\scriptsize Fig 9a. SSC (initial guess)}
 			\end{figure}
 		\end{column}
 		\begin{column}{0.48\textwidth}
 			\begin{figure}
 				\centering
-				\includegraphics[width=0.92\linewidth]{fig10_SSC_4params_final.png}
+				\includegraphics[width=0.92\linewidth]{fig10_SSC_5params_final.png}
 				\caption{\scriptsize Fig 9b. SSC (after OLS)}
 			\end{figure}
 		\end{column}
 	\end{columns}
 	\vspace{-0.2em}
-	\begin{block}{\scriptsize SSC Convergence}
-		\scriptsize Consistent SSC shapes before \& after estimation $\Rightarrow$ parameters \textbf{stable and identifiable}.
+	\begin{block}{\scriptsize Double-check (per inv\_soln5)}
+		\scriptsize $A$, $C$, $M$: stable.\ $a$ and $T_{\max}$ reduced $\sim$50\% (initial guess far from estimate), but all Max$|$SSC$| \geq 1$ $\Rightarrow$ identifiability \textbf{confirmed}.
 	\end{block}
 \end{frame}
 
@@ -333,16 +330,16 @@
 		\begin{column}{0.4\textwidth}
 			\vspace{1em}
 			\begin{itemize}
-				\item Equally-spaced \texttt{linspace} points (consistent with \texttt{inv\_soln5.m}); unscaled Jacobian $J=\partial Y/\partial\beta$
-				\item $\Delta$ criterion increases monotonically $\Rightarrow$ more data always helps
-				\item $C_{ii}$ (parameter variance) decreases with more data points for all 4 parameters
+				\item Beck \& Arnold (1977) Eq.\ 8.3.5:\; $C_{ij}(t) = \frac{1}{t}\int_0^t X'_i X'_j\,d\tau$,\; $\Delta = \det(C)$
+				\item $\Delta$ peaks at $t \approx 17$ hr $\Rightarrow$ optimal experiment duration
+				\item $C_{ii}$: $M$ peaks then declines; $C$ grows; $a$ lowest
 			\end{itemize}
 		\end{column}
 		\begin{column}{0.58\textwidth}
 			\begin{figure}
 				\centering
 				\includegraphics[width=\linewidth]{fig11_OED_delta_Cii.png}
-				\caption{Fig 10. $\Delta$ criterion and $C_{ii}$ vs.\ data points}
+				\caption{Fig 10. $\Delta$ criterion and $C_{ii}$ vs.\ time}
 			\end{figure}
 		\end{column}
 	\end{columns}
@@ -357,7 +354,7 @@
 	\begin{columns}[T]
 		\begin{column}{0.45\textwidth}
 			\footnotesize
-			600 bootstrap iterations (residual resampling), 600/600 valid.
+			600 bootstrap iterations (residual resampling), 522/600 valid.
 			\vspace{0.3em}
 			\begin{table}[ht]
 				\centering
@@ -366,10 +363,11 @@
 				\toprule
 				Param & Bootstrap 95\% CI & Asymptotic 95\% CI \\
 				\midrule
-				$A$ & [2.113,\ 2.596] & [2.059,\ 2.645] \\
-				$C$ & [10.63,\ 12.02] & [10.41,\ 11.98] \\
-				$M$ & [5.174,\ 5.850] & [5.172,\ 5.946] \\
-				$a$ & [2.57e-4,\ 3.88e-4] & [2.0e-4,\ 4.0e-4] \\
+				$A$ & [2.093,\ 2.606] & [2.046,\ 2.670] \\
+				$C$ & [10.27,\ 12.94] & [6.771,\ 15.354] \\
+				$M$ & [4.652,\ 5.836] & [4.414,\ 6.667] \\
+				$a$ & [2.5e-4,\ 4.4e-4] & [1.0e-4,\ 6.0e-4] \\
+				$T_{\max}$ & [43.26,\ 152.3] & [26.23,\ 65.22] \\
 				\bottomrule
 			\end{tabular}
 			\end{table}
@@ -395,15 +393,15 @@
 			\toprule
 			Metric & Asymptotic & Bootstrap \\
 			\midrule
-			CB width (avg) & 0.687 & \textbf{0.340} \\
-			PB width (avg) & 1.858 & \textbf{1.220} \\
+			CB width (avg) & 0.867 & \textbf{0.365} \\
+			PB width (avg) & 2.119 & \textbf{1.274} \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 	\vspace{0.5em}
 	\begin{itemize}
-		\item Bootstrap CB is $\mathbf{2\times}$ narrower; Bootstrap PB is $\mathbf{1.5\times}$ narrower
-		\item Asymptotic method overestimates uncertainty for this nonlinear model
+		\item Bootstrap CB is $\mathbf{2.4\times}$ narrower; Bootstrap PB is $\mathbf{1.7\times}$ narrower
+		\item Asymptotic method overestimates uncertainty ($\text{cond}(\mathbf{J})=3.14\times10^5$ inflates covariance)
 		\item Bootstrap provides more realistic uncertainty quantification
 	\end{itemize}
 \end{frame}
@@ -416,9 +414,9 @@
 	\frametitle{Conclusions}
 	\begin{enumerate}
 		\item Modified Gompertz model successfully predicts \textit{Salmonella} growth under sinusoidal temperature
-		\item \textbf{Parameter selection}: SSC analysis $\Rightarrow$ fix $T_{\min}$, $b$ (low SSC) and $T_{\max}$ ($C$--$T_{\max}$ collinearity $R=-0.991$); estimate $[A, C, M, a]$ ($7 \to 4$ direct elimination)
-		\item Robust OLS fit: $\text{cond}(\mathbf{J})=1.19\times10^4$, relRMSE $= 3.72\%$, $R^2 = 0.989$; all $|R_{ij}| < 0.60$; residual autocorrelation (runs $= 6 < 10.5$) suggests model improvement potential
-		\item Bootstrap CI narrower than asymptotic CI ($2\times$ for CB, $1.5\times$ for PB) $\Rightarrow$ asymptotic method overestimates uncertainty
+		\item \textbf{Parameter selection}: SSC analysis $\Rightarrow$ fix $T_{\min}$, $b$ (low SSC); estimate $[A, C, M, a, T_{\max}]$ ($7 \to 5$). $R(C,T_{\max})=0.980$ but all 95\% CI exclude zero
+		\item OLS fit: $\text{cond}(\mathbf{J})=3.14\times10^5$, relRMSE $= 3.84\%$, $R^2 = 0.989$; residual autocorrelation (runs $= 6 < 10.5$)
+		\item Bootstrap CI narrower ($2.4\times$ for CB, $1.7\times$ for PB) $\Rightarrow$ asymptotic overestimates due to high parameter correlation
 	\end{enumerate}
 \end{frame}
 
