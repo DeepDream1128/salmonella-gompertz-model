@@ -486,24 +486,18 @@ for i = 1:p
 end
 
 figure
-subplot(2,1,1)
-plot(tOED, delta_oed, '-b', 'LineWidth', 2);
-set(gca, 'fontsize',14,'fontweight','bold');
-xlabel('time (hr)');
-ylabel('\Delta = det(C)');
-title('\Delta Criterion  (Beck & Arnold Eq. 8.3.5)');
-grid on
-
-subplot(2,1,2)
 hold on
 set(gca, 'fontsize',14,'fontweight','bold');
 for i = 1:p
     plot(tOED, Cp(i,:), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 2);
 end
+delta_scale = round(max(max(Cp(:,2:end))) / max(delta_oed(2:end)));
+if delta_scale < 1, delta_scale = 1; end
+plot(tOED, delta_scale*delta_oed, '-^k', 'LineWidth', 2, 'MarkerSize', 5, 'MarkerIndices', 1:20:mOED);
 xlabel('time (hr)');
-ylabel('C_{ii}');
-title('Diagonal elements of C');
-legend(pnames, 'Location', 'best');
+ylabel('C_{ii}  and  scaled \Delta');
+title('Optimal Experimental Design (Beck & Arnold Eq. 8.3.5)');
+legend([pnames, {sprintf('%d\\Delta', delta_scale)}], 'Location', 'best');
 grid on
 hold off
 saveas(gcf, fullfile(figDir, 'fig11_OED_delta_Cii.png'));
