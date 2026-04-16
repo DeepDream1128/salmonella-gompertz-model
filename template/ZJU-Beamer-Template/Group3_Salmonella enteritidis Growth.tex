@@ -1,0 +1,432 @@
+%# -*- coding:utf-8 -*-
+% Salmonella Gompertz Growth Model Presentation
+% Based on ZJU Beamer Template
+
+\PassOptionsToPackage{quiet}{fontspec} 
+\documentclass[10pt,aspectratio=169]{beamer}
+\usepackage{zju_beamer}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\graphicspath{{../../figures/}} % 指向项目根目录下的 figures/
+\zjusectioncolor{blue}
+
+% 图注使用手动 Fig X. 格式，不自动编号
+\renewcommand{\figurename}{}
+\setbeamertemplate{caption}{\insertcaption}
+
+% 首页信息设置
+\title[Salmonella Gompertz Model]{Predictive Modeling of \textit{Salmonella enteritidis} Growth Under Sinusoidal Temperature}
+\subtitle{Modified Gompertz Model \& OLS Parameter Estimation}
+\author[Team]{Boyuan Zhao, Wenyu Xu, Yizhou Li} % TODO: 替换为实际成员名
+\institute[ZJU]{College of Biosystems Engineering and Food Science \\ Zhejiang University}
+\date{April 14, 2026}
+\begin{document}
+
+% ============================================================
+% Slide 1: Title
+% ============================================================
+\begin{frame}
+	\titlepage
+\end{frame}
+
+\begin{frame}
+	\frametitle{目录}
+	\tableofcontents
+\end{frame}
+
+% ============================================================
+% Slide 2: Introduction & Background
+% ============================================================
+\section{Introduction \& Background}
+\begin{frame}
+	\frametitle{Introduction \& Background}
+	\begin{itemize}
+		\item \textit{Salmonella enteritidis} is a major foodborne pathogen in egg products
+		\item Temperature fluctuations during storage/transport affect microbial growth
+		\item Reference: Gumudavelli et al.\ (2007), \textit{J.\ Food Sci.}\ 72:M254--62 \cite{gumudavelli2007}
+	\end{itemize}
+	\vspace{0.5em}
+	\begin{block}{Objective}
+		Use a modified Gompertz model to predict \textit{Salmonella} growth under sinusoidal heating, estimate model parameters via OLS, and evaluate model adequacy.
+	\end{block}
+\end{frame}
+
+% ============================================================
+% Slide 3: Model Description
+% ============================================================
+\section{Model Description}
+\begin{frame}
+	\frametitle{Model Description}
+	\begin{block}{Primary Model (differential form)}
+		\begin{equation}
+			\frac{d\log N}{dt} = \mu \cdot K \cdot C \cdot \exp(-K), \quad K = \exp\!\bigl(-\mu(t - M)\bigr)
+		\end{equation}
+	\end{block}
+	\begin{block}{Secondary Model (growth rate vs.\ temperature)}
+		\begin{equation}
+			\mu = a(T - T_{\min})^2 \bigl(1 - \exp[b(T - T_{\max})]\bigr)
+		\end{equation}
+	\end{block}
+	\vspace{0.3em}
+	\begin{itemize}
+		\item \textbf{Dependent variable}: $\log_{10} N(t)$ — log microbial concentration (log\,cfu/mL)
+		\item \textbf{Independent variable}: $t$ — time (hr)
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Model Description — 7 Candidate Parameters}
+	\begin{table}[ht]
+		\centering
+		\footnotesize
+		\begin{tabular}{cclcc}
+			\toprule
+			Parameter & Symbol & Description & Units & Initial Guess \\
+			\midrule
+			A & $A$ & Initial log microbial number & log\,cfu/mL & $\log_{10}(400)\approx 2.60$ \\
+			C & $C$ & Upper--lower asymptote difference & log\,cfu/mL & 11 \\
+			M & $M$ & Inflection point time & hr & 7.5 \\
+			a & $a$ & Secondary model coefficient & ${}^{\circ}\text{C}^{-2}\,\text{hr}^{-1}$ & 0.000338 \\
+			b & $b$ & Secondary model coefficient & ${}^{\circ}\text{C}^{-1}$ & 0.275 \\
+			$T_{\min}$ & $T_{\min}$ & Minimum growth temperature & ${}^{\circ}\text{C}$ & 6 \\
+			$T_{\max}$ & $T_{\max}$ & Maximum growth temperature & ${}^{\circ}\text{C}$ & 46.3 \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+\end{frame}
+
+% ============================================================
+% Slide 4: Data Overview
+% ============================================================
+\section{Data Overview}
+\begin{frame}
+	\frametitle{Data Overview}
+	\begin{columns}[T]
+		\begin{column}{0.35\textwidth}
+			\begin{itemize}
+				\item Growth data: $\log_{10}(\text{CFU/mL})$, $n = 20$
+				\item Temperature: sinusoidal $T(t)$ every minute
+				\item Two independent time vectors
+			\end{itemize}
+		\end{column}
+		\begin{column}{0.63\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=\linewidth]{fig07_dual_axis_logN_temp.png}
+				\caption{Fig 1. Dual-axis: $\log_{10} N$ (observed \& predicted) and $T$ vs.\ time}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% ============================================================
+% Slide 5: Forward Problem — Initial Guess
+% ============================================================
+\section{Forward Problem}
+\begin{frame}
+	\frametitle{Forward Problem — Initial Guess}
+	\begin{columns}[T]
+		\begin{column}{0.32\textwidth}
+			\begin{itemize}
+				\item All 7 guesses from literature
+				\item ODE solved with \texttt{ode45}
+				\item $T(t)$ interpolated via \texttt{interp1}
+			\end{itemize}
+		\end{column}
+		\begin{column}{0.66\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=\linewidth]{fig01_initial_guess_vs_data.png}
+				\caption{Fig 2. Initial guess vs.\ observed data}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% ============================================================
+% Slide 6: SSC Analysis — All 7 Parameters
+% ============================================================
+\section{Parameter Selection}
+\begin{frame}
+	\frametitle{SSC Analysis — All 7 Parameters (Step 1)}
+	\begin{columns}[T]
+		\begin{column}{0.28\textwidth}
+			\scriptsize
+			\textbf{Max$|$SSC$|$}:
+			\vspace{0.2em}
+			\begin{table}[ht]
+				\centering
+				\scriptsize
+				\begin{tabular}{cc}
+					\toprule
+					Param & Max$|$SSC$|$ \\
+					\midrule
+					A & 2.61 \\
+					C & 5.11 \\
+					M & 5.45 \\
+					a & 2.20 \\
+					b & \textbf{0.88} \\
+					$T_{\min}$ & \textbf{0.83} \\
+					$T_{\max}$ & 9.02 \\
+					\bottomrule
+				\end{tabular}
+			\end{table}
+			\vspace{0.1em}
+			\begin{block}{\scriptsize Decision}
+				\tiny $T_{\min}$ (0.83) and $b$ (0.88): lowest SSC $\Rightarrow$ \textbf{fix}: $T_{\min}\!=\!6\,{}^{\circ}\text{C}$, $b\!=\!0.275$.
+			\end{block}
+		\end{column}
+		\begin{column}{0.70\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=0.92\linewidth]{fig02_SSC_7params.png}
+				\caption{Fig 3. SSC for all 7 parameters}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% Slides 7--8 (Round 1) removed: parameters fixed in one step (7 → 4)
+
+% ============================================================
+% Slide 9: Parameter Selection Summary
+% ============================================================
+\begin{frame}
+	\frametitle{Parameter Selection Summary}
+	\begin{table}[ht]
+		\centering
+		\footnotesize
+		\begin{tabular}{ccccc}
+			\toprule
+			Parameter & Max$|$SSC$|$ & Identifiable? & Action & Value Used \\
+			\midrule
+			A & 2.61 & \checkmark Yes & \textbf{Estimate} & OLS result \\
+			C & 5.11 & \checkmark Yes & \textbf{Estimate} & OLS result \\
+			M & 5.45 & \checkmark Yes & \textbf{Estimate} & OLS result \\
+			$a$ & 2.20 & \checkmark Yes & \textbf{Estimate} & OLS result \\
+			$b$ & 0.88 & $\times$ Low SSC & Fix (literature) & $0.275\,{}^{\circ}\text{C}^{-1}$ \\
+			$T_{\min}$ & 0.83 & $\times$ Lowest SSC & Fix (literature) & $6\,{}^{\circ}\text{C}$ \\
+			$T_{\max}$ & 9.02 & \checkmark Yes & \textbf{Estimate} & OLS result \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+	\vspace{0.3em}
+	\begin{itemize}
+		\item \textbf{Direct elimination}: $7 \to 5$ — fix $T_{\min}$, $b$ (low SSC)
+		\item \textbf{Final estimable parameters}: $[A, C, M, a, T_{\max}]$
+	\end{itemize}
+\end{frame}
+
+% ============================================================
+% Slide 10: OLS Inverse Problem — Final Results (4 params)
+% ============================================================
+\section{OLS Results}
+\begin{frame}
+	\frametitle{OLS Inverse Problem — Final Results ($[A, C, M, a, T_{\max}]$)}
+	\begin{table}[ht]
+		\centering
+		\footnotesize
+		\begin{tabular}{ccccc}
+			\toprule
+			Param & Estimate & $\sigma$ & Rel Err & 95\% CI \\
+			\midrule
+			$A$ & 2.358 & 0.146 & 6.2\% & [2.046,\ 2.670] \\
+			$C$ & 11.062 & 2.013 & 18.2\% & [6.771,\ 15.354] \\
+			$M$ & 5.541 & 0.528 & 9.5\% & [4.414,\ 6.667] \\
+			$a$ & 3.0e-4 & 1.1e-4 & 38.3\% & [1.0e-4,\ 6.0e-4] \\
+			$T_{\max}$ & 45.72 & 9.15 & 20.0\% & [26.23,\ 65.22] \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+	\vspace{0.1em}
+	\begin{itemize}
+		\item Fixed: $T_{\min}=6\,{}^{\circ}\text{C}$,\ $b=0.275$ (literature)
+		\item $\text{cond}(\mathbf{J}) = 3.14\times10^5$\quad RMSE $= 0.232$\quad relRMSE $= 3.84\%$\quad $R^2 = 0.989$
+		\item Correlations: $R(C,T_{\max})\!=\!0.98$, $R(C,a)\!=\!{-}0.97$, $R(a,T_{\max})\!=\!{-}0.94$, $R(C,M)\!=\!0.92$ — all 95\% CI exclude zero
+	\end{itemize}
+\end{frame}
+
+% ============================================================
+% Slide 11: Fitted Curve with CB and PB
+% ============================================================
+\begin{frame}
+	\frametitle{Fitted Curve with Asymptotic CB and PB}
+	\begin{figure}[ht]
+		\centering
+		\includegraphics[width=0.65\linewidth]{fig06_OLS_fit_CB_PB.png}
+		\caption{Fig 6. OLS fit with 95\% simultaneous confidence bands (CB) and prediction bands (PB)}
+	\end{figure}
+\end{frame}
+
+% ============================================================
+% Slide 12: Residual Analysis
+% ============================================================
+\section{Model Diagnostics}
+\begin{frame}
+	\frametitle{Residual Analysis}
+	\vspace{-0.3em}
+	\begin{columns}[T]
+		\begin{column}{0.48\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=\linewidth]{fig08_residual_scatter.png}
+				\caption{\small Fig 7. Residual scatter}
+			\end{figure}
+		\end{column}
+		\begin{column}{0.48\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=\linewidth]{fig09_residual_histogram.png}
+				\caption{\small Fig 8. Residual histogram}
+			\end{figure}
+		\end{column}
+	\end{columns}
+	\vspace{-0.3em}
+	\small
+	\textbf{5 Assumptions}:
+	\checkmark\ Zero mean ($\bar{e}\approx 0.000$)\quad
+	$\triangle$\ Constant variance\quad
+	$\triangle$\ Uncorrelated (runs $= 6 < 10.5$)\quad
+	\checkmark\ Normality\quad
+	\checkmark\ Correct model
+\end{frame}
+
+% ============================================================
+% Slide 13: SSC Convergence — Round 2 Before vs After
+% ============================================================
+\begin{frame}
+	\frametitle{SSC Convergence — Before \& After Estimation}
+	\vspace{-0.3em}
+	\begin{columns}[T]
+		\begin{column}{0.48\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=0.92\linewidth]{fig06a_SSC_5params_initial.png}
+				\caption{\scriptsize Fig 9a. SSC (initial guess)}
+			\end{figure}
+		\end{column}
+		\begin{column}{0.48\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=0.92\linewidth]{fig10_SSC_5params_final.png}
+				\caption{\scriptsize Fig 9b. SSC (after OLS)}
+			\end{figure}
+		\end{column}
+	\end{columns}
+	\vspace{-0.2em}
+	\begin{block}{\scriptsize Double-check (per inv\_soln5)}
+		\scriptsize $A$, $C$, $M$: stable.\ $a$ and $T_{\max}$ reduced $\sim$50\% (initial guess far from estimate), but all Max$|$SSC$| \geq 1$ $\Rightarrow$ identifiability \textbf{confirmed}.
+	\end{block}
+\end{frame}
+
+% ============================================================
+% Slide 14: Optimal Experimental Design
+% ============================================================
+\section{Optimal Experimental Design}
+\begin{frame}
+	\frametitle{Optimal Experimental Design}
+	\begin{columns}[T]
+		\begin{column}{0.4\textwidth}
+			\vspace{1em}
+			\begin{itemize}
+				\item Beck \& Arnold (1977) Eq.\ 8.3.5:\; $C_{ij}(t) = \frac{1}{t}\int_0^t X'_i X'_j\,d\tau$,\; $\Delta = \det(C)$
+				\item $\Delta$ peaks at $t \approx 17$ hr $\Rightarrow$ optimal experiment duration
+				\item $C_{ii}$: $M$ peaks then declines; $C$ grows; $a$ lowest
+			\end{itemize}
+		\end{column}
+		\begin{column}{0.58\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=\linewidth]{fig11_OED_delta_Cii.png}
+				\caption{Fig 10. $\Delta$ criterion and $C_{ii}$ vs.\ time}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% ============================================================
+% Slide 15: Bootstrapping of Residuals
+% ============================================================
+\section{Bootstrapping}
+\begin{frame}
+	\frametitle{Bootstrapping of Residuals}
+	\begin{columns}[T]
+		\begin{column}{0.45\textwidth}
+			\footnotesize
+			600 bootstrap iterations (residual resampling), 522/600 valid.
+			\vspace{0.3em}
+			\begin{table}[ht]
+				\centering
+				\scriptsize
+		\begin{tabular}{ccc}
+				\toprule
+				Param & Bootstrap 95\% CI & Asymptotic 95\% CI \\
+				\midrule
+				$A$ & [2.093,\ 2.606] & [2.046,\ 2.670] \\
+				$C$ & [10.27,\ 12.94] & [6.771,\ 15.354] \\
+				$M$ & [4.652,\ 5.836] & [4.414,\ 6.667] \\
+				$a$ & [2.5e-4,\ 4.4e-4] & [1.0e-4,\ 6.0e-4] \\
+				$T_{\max}$ & [43.26,\ 152.3] & [26.23,\ 65.22] \\
+				\bottomrule
+			\end{tabular}
+			\end{table}
+		\end{column}
+		\begin{column}{0.53\textwidth}
+			\begin{figure}
+				\centering
+				\includegraphics[width=\linewidth]{fig12_bootstrap_CB_PB.png}
+				\caption{Fig 11. Bootstrap CB and PB}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+% ============================================================
+% Slide 16: Asymptotic vs Bootstrap Comparison
+% ============================================================
+\begin{frame}
+	\frametitle{Asymptotic vs Bootstrap Comparison}
+	\begin{table}[ht]
+		\centering
+		\begin{tabular}{lcc}
+			\toprule
+			Metric & Asymptotic & Bootstrap \\
+			\midrule
+			CB width (avg) & 0.867 & \textbf{0.365} \\
+			PB width (avg) & 2.119 & \textbf{1.274} \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+	\vspace{0.5em}
+	\begin{itemize}
+		\item Bootstrap CB is $\mathbf{2.4\times}$ narrower; Bootstrap PB is $\mathbf{1.7\times}$ narrower
+		\item Asymptotic method overestimates uncertainty ($\text{cond}(\mathbf{J})=3.14\times10^5$ inflates covariance)
+		\item Bootstrap provides more realistic uncertainty quantification
+	\end{itemize}
+\end{frame}
+
+% ============================================================
+% Slide 17: Conclusions
+% ============================================================
+\section{Conclusions}
+\begin{frame}
+	\frametitle{Conclusions}
+	\begin{enumerate}
+		\item Modified Gompertz model successfully predicts \textit{Salmonella} growth under sinusoidal temperature
+		\item \textbf{Parameter selection}: SSC analysis $\Rightarrow$ fix $T_{\min}$, $b$ (low SSC); estimate $[A, C, M, a, T_{\max}]$ ($7 \to 5$). $R(C,T_{\max})=0.980$ but all 95\% CI exclude zero
+		\item OLS fit: $\text{cond}(\mathbf{J})=3.14\times10^5$, relRMSE $= 3.84\%$, $R^2 = 0.989$; residual autocorrelation (runs $= 6 < 10.5$)
+		\item Bootstrap CI narrower ($2.4\times$ for CB, $1.7\times$ for PB) $\Rightarrow$ asymptotic overestimates due to high parameter correlation
+	\end{enumerate}
+\end{frame}
+
+% ============================================================
+% References
+% ============================================================
+\section{References}
+\begin{frame}[allowframebreaks]
+    \frametitle{References}
+    \reference
+\end{frame}
+
+\end{document}

@@ -97,12 +97,12 @@ for i = 1:p_all
 end
 ypred = fnameFOR_all(beta_all, xs);
 h2(p_all+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
-legStr = cell(1, p_all+1);
-for i = 1:p_all
-    legStr{i} = [pnames_all{i}, '*\partialY/\partial(', pnames_all{i}, ')'];
-end
-legStr{p_all+1} = 'Y';
-legend(h2, legStr, 'location', 'best');
+pLabels_all = {'A','C','M','a','b','T_{min}','T_{max}'};
+legStr = [pLabels_all, {'Y_{pred}'}];
+lg = legend(h2, legStr, 'Location', 'northeast', 'Orientation', 'horizontal', ...
+    'FontSize', 9, 'FontWeight', 'normal', 'NumColumns', 4);
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 title('SSC using initial guesses -- ALL 7 parameters');
@@ -204,12 +204,12 @@ for i = 1:p_r1
 end
 ypred = fnameFOR_r1(beta0_r1, xs);
 h2(p_r1+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
-legStr_r1 = cell(1, p_r1+1);
-for i = 1:p_r1
-    legStr_r1{i} = [pnames_r1{i}, '*\partialY/\partial(', pnames_r1{i}, ')'];
-end
-legStr_r1{p_r1+1} = 'Y';
-legend(h2, legStr_r1, 'location', 'best');
+pLabels_r1 = {'A','C','M','a','T_{max}'};
+legStr_r1 = [pLabels_r1, {'Y_{pred}'}];
+lg = legend(h2, legStr_r1, 'Location', 'northeast', 'Orientation', 'horizontal', ...
+    'FontSize', 10, 'FontWeight', 'normal', 'NumColumns', 3);
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 title('SSC using initial guesses -- 5 params (Tmin & b fixed)');
@@ -249,7 +249,10 @@ for i = 1:p_r1
 end
 ypred = fnameFOR_r1(beta_r1, xs);
 h2(p_r1+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
-legend(h2, legStr_r1, 'location', 'best');
+lg = legend(h2, legStr_r1, 'Location', 'northeast', 'Orientation', 'horizontal', ...
+    'FontSize', 10, 'FontWeight', 'normal', 'NumColumns', 3);
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 title('SSC using estimated parameters (5 params)');
@@ -342,7 +345,10 @@ h1(3) = plot(xSort, CBuS, '--g', 'LineWidth', 2);
 plot(xSort, CBlS, '--g', 'LineWidth', 2);
 h1(4) = plot(xSort, PBuS, '-.c', 'LineWidth', 2);
 plot(xSort, PBlS, '-.c', 'LineWidth', 2);
-legend(h1, 'ypred', 'yobs', 'CB', 'PB')
+lg = legend(h1, 'ypred', 'yobs', 'CB', 'PB', ...
+    'Location', 'northwest', 'FontSize', 11, 'FontWeight', 'normal');
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 title('OLS fit with asymptotic CB and PB')
 saveas(gcf, fullfile(figDir, 'fig06_OLS_fit_CB_PB.png'));
 %%
@@ -359,7 +365,10 @@ hd(3) = plot(tTemp_hr, Tobs, '-r', 'LineWidth', 2);
 ylabel('Temperature (°C)');
 xlabel('time (hr)');
 title('Salmonella growth under sinusoidal temperature');
-legend(hd, 'logN observed', 'logN predicted', 'Temperature', 'location', 'best');
+lg = legend(hd, 'logN obs', 'logN pred', 'Temp', ...
+    'Location', 'south', 'Orientation', 'horizontal', 'FontSize', 10, 'FontWeight', 'normal');
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 grid on
 saveas(gcf, fullfile(figDir, 'fig07_dual_axis_logN_temp.png'));
 figure
@@ -432,14 +441,18 @@ hold on
 set(gca, 'fontsize',14,'fontweight','bold');
 clear h2
 legStr_final = cell(1, p+1);
+pLabels = {'A','C','M','a','T_{max}'};
 for i = 1:p
     h2(i) = plot(xs(1:ns), Xp(1:ns,i), '-', 'color', paramColorMap(pnames{i}), 'LineWidth', 3);
-    legStr_final{i} = [pnames{i}, '*\partialY/\partial(', pnames{i}, ')'];
+    legStr_final{i} = pLabels{i};
 end
 ypred = fnameFOR(beta, xs);
 h2(p+1) = plot(xs, ypred, '--', 'color', Ypred_color, 'LineWidth', 4);
-legStr_final{p+1} = 'Y';
-legend(h2, legStr_final, 'location', 'best');
+legStr_final{p+1} = 'Y_{pred}';
+lg = legend(h2, legStr_final, 'Location', 'northeast', 'Orientation', 'horizontal', ...
+    'FontSize', 10, 'FontWeight', 'normal', 'NumColumns', 3);
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 xlabel('time (hr)');
 ylabel('SSC  \beta_i \partial Y/\partial\beta_i  (Y units)');
 maxSSC_final = max(abs(Xp));
@@ -497,7 +510,11 @@ plot(tOED, delta_scale*delta_oed, '-^k', 'LineWidth', 2, 'MarkerSize', 5, 'Marke
 xlabel('time (hr)');
 ylabel('C_{ii}  and  scaled \Delta');
 title('Optimal Experimental Design (Beck & Arnold Eq. 8.3.5)');
-legend([pnames, {sprintf('%d\\Delta', delta_scale)}], 'Location', 'best');
+oedLabels = {'A','C','M','a','T_{max}', sprintf('%d\\Delta', delta_scale)};
+lg = legend(oedLabels, 'Location', 'northwest', 'Orientation', 'horizontal', ...
+    'FontSize', 10, 'FontWeight', 'normal', 'NumColumns', 3);
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 grid on
 hold off
 saveas(gcf, fullfile(figDir, 'fig11_OED_delta_Cii.png'));
@@ -589,7 +606,10 @@ plot(xs, bootPBl, '-.c', 'LineWidth', 2);
 xlabel('time (hr)');
 ylabel('log_{10}N (log cfu/mL)');
 title('Bootstrap CB and PB');
-legend(hb, 'ypred', 'yobs', 'Boot CB', 'Boot PB', 'location', 'best');
+lg = legend(hb, 'ypred', 'yobs', 'Boot CB', 'Boot PB', ...
+    'Location', 'northwest', 'FontSize', 11, 'FontWeight', 'normal');
+lg.BoxFace.ColorType = 'truecoloralpha';
+lg.BoxFace.ColorData = uint8([255;255;255;180]);
 grid on
 hold off
 saveas(gcf, fullfile(figDir, 'fig12_bootstrap_CB_PB.png'));
