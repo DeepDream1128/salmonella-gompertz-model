@@ -385,44 +385,33 @@ meanres = mean(resids)
 hold off
 saveas(gcf, fullfile(figDir, 'fig08_residual_scatter.png'));
 %%
-%% number of runs (handles replicates)
+%% number of runs (standard runs test)
 x3 = x;
 xResids = [x3 resids];
 xResidsSort = sortrows(xResids);
 xS = xResidsSort(:,1);
 residsSort = xResidsSort(:,2);
 
-count = 0;
-countRep = 1;
-countNeg = 0; countPos = 0;
-resSign(countRep) = sign(residsSort(1));
-for i = 2:n
-    if xS(i)==xS(i-1)
-        countRep = countRep+1;
-        resSign(countRep) = sign(residsSort(i));
-    else
-        for j = 1:countRep
-            if resSign(j) < 0
-                countNeg = countNeg+1;
-            elseif resSign(j) > 0
-                countPos = countPos+1;
-            end
-        end
-        count = count+min(countNeg, countPos);
-        rescross = residsSort(i)*residsSort(i-1);
-        resSign(j+1) = sign(rescross);
-        if resSign(j+1) < 0
-            count = count+1;
-        end
-        clear resSign
-        countRep = 1;
-        resSign(countRep) = sign(residsSort(i));
-        countNeg = 0; countPos = 0;
-    end
+signs = sign(residsSort);
+signs(signs == 0) = 1;
+nRuns = 1 + sum(diff(signs) ~= 0);
+n_pos = sum(signs > 0);
+n_neg = sum(signs < 0);
+E_runs = 2*n_pos*n_neg / (n_pos + n_neg) + 1;
+Var_runs = 2*n_pos*n_neg*(2*n_pos*n_neg - n_pos - n_neg) / ...
+    ((n_pos + n_neg)^2 * (n_pos + n_neg - 1));
+Z_runs = (nRuns - E_runs) / sqrt(Var_runs);
+
+fprintf('\n--- Runs Test ---\n');
+fprintf('Number of runs        = %d\n', nRuns);
+fprintf('Expected runs         = %.2f\n', E_runs);
+fprintf('Minimum required runs = %.2f  ((n+1)/2)\n', (n+1)/2);
+fprintf('Z-statistic           = %.3f\n', Z_runs);
+if nRuns >= (n+1)/2
+    fprintf('Result: PASS (runs >= minimum)\n');
+else
+    fprintf('Result: FAIL (runs < minimum) -- possible autocorrelation\n');
 end
-fprintf('number of runs = %5.2f\n', count);
-minrun = (n+1)/2;
-fprintf('Minimum required number of runs = %5.2f\n', minrun);
 %%
 %% residuals histogram
 figure
@@ -518,6 +507,114 @@ lg.BoxFace.ColorData = uint8([255;255;255;180]);
 grid on
 hold off
 saveas(gcf, fullfile(figDir, 'fig11_OED_delta_Cii.png'));
+%%
+%% ======== Weighted Least Squares (WLS) ========
+% Two-step WLS: use OLS residuals to estimate local variance, then re-fit
+% Reference: call_Ex22_19_7.m approach (scale by estimated std dev)
+
+fprintf('\n===== Weighted Least Squares (WLS) =====\n');
+
+% Step 1: Estimate local variance from OLS residuals using time bins
+nBins = 4;
+binEdges = linspace(min(x), max(x)+eps, nBins+1);
+sigmaLocal = zeros(n, 1);
+for iBin = 1:nBins
+    inBin = x >= binEdges(iBin) & x < binEdges(iBin+1);
+    if sum(inBin) > 1
+        sigmaLocal(inBin) = std(resids(inBin));
+    else
+        sigmaLocal(inBin) = rmse;
+    end
+end
+sigmaLocal(sigmaLocal < rmse/5) = rmse/5;  % floor to avoid infinite weights
+
+wts = 1 ./ sigmaLocal;  % weights = 1/sigma
+yobs_wls = yobs .* wts;
+
+% Step 2: WLS inverse function (returns ypred * weights)
+fnameINV_wls = @(beta, t) gompertzINV_5(beta, t, Tmin_fixed, b_fixed) .* wts;
+
+% Step 3: Re-fit with nlinfit
+[beta_wls, resids_wls, J_wls, COVB_wls, mse_wls] = ...
+    nlinfit(x, yobs_wls, fnameINV_wls, beta, opts);
+
+rmse_wls = sqrt(mse_wls);
+SSres_wls = resids_wls' * resids_wls;
+ypred_wls_raw = fnameINV(beta_wls, x);
+SStot_wls = sum((yobs - mean(yobs)).^2);
+SSres_wls_raw = sum((yobs - ypred_wls_raw).^2);
+Rsq_wls = 1 - SSres_wls_raw / SStot_wls;
+
+fprintf('WLS beta =\n'); disp(beta_wls);
+fprintf('WLS R^2 (on original scale) = %.4f\n', Rsq_wls);
+fprintf('WLS RMSE (weighted)         = %.4f\n', rmse_wls);
+fprintf('WLS RMSE (original scale)   = %.4f\n', sqrt(SSres_wls_raw/(n-p)));
+fprintf('WLS cond(J)                 = %.4e\n', cond(J_wls));
+
+ci_wls = nlparci(beta_wls, resids_wls, J_wls);
+fprintf('WLS 95%% CI:\n');
+for i = 1:p
+    fprintf('  %s: [%.6g, %.6g]\n', pnames{i}, ci_wls(i,1), ci_wls(i,2));
+end
+
+% WLS residual analysis (on original scale)
+resids_wls_orig = yobs - ypred_wls_raw;
+
+fprintf('\n--- WLS Residual Diagnostics ---\n');
+fprintf('Mean residual = %.6f\n', mean(resids_wls_orig));
+
+% WLS runs test
+signs_wls = sign(resids_wls_orig);
+signs_wls(signs_wls == 0) = 1;
+[~, sortIdx_wls] = sort(x);
+signs_wls_sorted = signs_wls(sortIdx_wls);
+nRuns_wls = 1 + sum(diff(signs_wls_sorted) ~= 0);
+n_pos_wls = sum(signs_wls_sorted > 0);
+n_neg_wls = sum(signs_wls_sorted < 0);
+E_runs_wls = 2*n_pos_wls*n_neg_wls / (n_pos_wls + n_neg_wls) + 1;
+fprintf('WLS Runs = %d, Expected = %.2f, Min required = %.2f\n', ...
+    nRuns_wls, E_runs_wls, (n+1)/2);
+if nRuns_wls >= (n+1)/2
+    fprintf('WLS Runs test: PASS\n');
+else
+    fprintf('WLS Runs test: FAIL (autocorrelation may persist due to model form)\n');
+end
+
+% WLS fit plot
+figure
+hold on
+set(gca, 'fontsize',16,'fontweight','bold');
+ypredp_wls = fnameFOR(beta_wls, xs);
+hw(1) = plot(xs, ypredp_wls, '-b', 'LineWidth', 2);
+hw(2) = plot(x, yobs, 'sr', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
+xlabel('time (hr)'); ylabel('log_{10}N (log cfu/mL)');
+title(sprintf('WLS fit: R^2=%.4f', Rsq_wls));
+legend(hw, 'WLS predicted', 'Observed', 'location', 'best');
+grid on
+saveas(gcf, fullfile(figDir, 'fig13_WLS_fit.png'));
+
+% WLS residual scatter
+figure
+hold on
+set(gca, 'fontsize',14,'fontweight','bold');
+plot(x, resids_wls_orig, 'square', 'Markerfacecolor', 'b', 'markersize', 10);
+plot([0 max(x)], [0 0], 'R');
+ylabel('Observed - Predicted (WLS)','fontsize',14,'fontweight','bold');
+xlabel('Time (hr)','fontsize',14,'fontweight','bold');
+title('WLS Residuals');
+grid on
+saveas(gcf, fullfile(figDir, 'fig14_WLS_residuals.png'));
+
+% Compare OLS vs WLS
+fprintf('\n--- OLS vs WLS Comparison ---\n');
+fprintf('         OLS        WLS\n');
+fprintf('R^2:     %.4f      %.4f\n', Rsq, Rsq_wls);
+fprintf('RMSE:    %.4f      %.4f\n', rmse, sqrt(SSres_wls_raw/(n-p)));
+fprintf('Runs:    %d          %d  (min=%d)\n', nRuns, nRuns_wls, round((n+1)/2));
+for i = 1:p
+    fprintf('%s:  %.6g  vs  %.6g\n', pnames{i}, beta(i), beta_wls(i));
+end
+%%
 nBoot = 600;
 betaBoot = zeros(nBoot, p);
 ypredBoot = zeros(nBoot, ns);
